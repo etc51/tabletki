@@ -58,6 +58,7 @@ adb shell appops set $PKG USE_FULL_SCREEN_INTENT allow 2>/dev/null || true
 adb shell cmd deviceidle whitelist +$PKG 2>/dev/null || true
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
+read -r W H < <(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr 'x' ' ')
 
 log "Пустое приложение"
 start today
@@ -72,7 +73,6 @@ if tap_text "Добавить лекарство"; then
   tap_text "Название" && adb shell input text "Aspirin" && sleep 1
   adb shell input keyevent 111  # убрать клавиатуру
   sleep 1
-  read -r W H < <(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr 'x' ' ')
   for i in 1 2 3 4 5 6; do tap_text "Сохранить" && break; adb shell input swipe $((W/2)) $((H*3/4)) $((W/2)) $((H/4)) 300; sleep 1; done
   sleep 3
   start medicines
@@ -128,6 +128,26 @@ if tap_text "Принял"; then
   adb shell dumpsys notification --noredact | grep -q "Пора принять" && fail "уведомление не исчезло после «Принял»" || ok "после «Принял» уведомление исчезло"
 fi
 shot 31-posle
+
+log "Релизная сборка (после сжатия кода R8)"
+adb uninstall $PKG >/dev/null
+adb install app/build/outputs/apk/release/app-release.apk
+adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+adb shell am start -n $PKG/ru.tabletki.ui.MainActivity >/dev/null
+sleep 5
+dismiss_anr
+shot 40-release
+screen_has "Добавьте первое лекарство" && ok "релизная сборка запускается" || fail "релизная сборка не показала стартовый экран"
+for s in medicines journal settings; do start $s; done
+start today
+if tap_text "Добавить лекарство"; then
+  sleep 3
+  tap_text "Название" && adb shell input text "Release" && sleep 1
+  adb shell input keyevent 111; sleep 1
+  for i in 1 2 3 4 5 6; do tap_text "Сохранить" && break; adb shell input swipe $((W/2)) $((H*3/4)) $((W/2)) $((H/4)) 300; sleep 1; done
+  sleep 3; start medicines
+  screen_has "Release" && ok "релиз: лекарство сохраняется" || fail "релиз: лекарство не сохранилось"
+fi
 
 log "Падения"
 adb logcat -d > "$OUT/logcat.txt"

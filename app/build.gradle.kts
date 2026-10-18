@@ -36,7 +36,12 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
+            if (keystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            } else if (project.hasProperty("debugSignRelease")) {
+                // Только для проверки в эмуляторе: релиз с отладочным ключом, в магазин такой не загружать.
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 
