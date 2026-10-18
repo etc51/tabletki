@@ -1,0 +1,61 @@
+name: Проверка релиза
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 34]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Скачать APK из последнего релиза
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p rel && gh release download --repo ${{ github.repository }} --pattern '*.apk' --dir rel
+          ls -la rel
+
+      - name: Включить KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Установить и запустить
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            mkdir -p out
+            adb install rel/*.apk > out/install.txt 2>&1; cat out/install.txt
+            adb shell am start -n io.github.etc51.tabletki/ru.tabletki.ui.MainActivity
+            sleep 8
+            adb exec-out screencap -p > out/start.png
+            adb shell dumpsys package io.github.etc51.tabletki | grep -E "versionName|signatures" > out/package.txt || true
+            adb logcat -d | grep -A20 "FATAL EXCEPTION" > out/crash.txt || true
+            grep -q Success out/install.txt && echo "ok: установка" >> out/result.txt || echo "ПРОВАЛ: установка" >> out/result.txt
+            adb shell pidof io.github.etc51.tabletki && echo "ok: запущено" >> out/result.txt || echo "ПРОВАЛ: не запущено" >> out/result.txt
+            [ -s out/crash.txt ] && echo "ПРОВАЛ: падение" >> out/result.txt || echo "ok: падений нет" >> out/result.txt
+            cat out/result.txt
+
+      - name: Сохранить в ветку checks/release-${{ matrix.api }}
+        if: always()
+        run: |
+          cd out
+          git init -q -b out
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Проверка релиза на API ${{ matrix.api }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" out:checks/release-${{ matrix.api }}
