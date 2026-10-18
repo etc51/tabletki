@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -17,6 +18,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -70,7 +72,18 @@ fun TodayScreen(modifier: Modifier, onAddMedicine: () -> Unit, onOpenSettings: (
     val checks = rememberStoreData(emptyList<SetupCheck>(), rememberResumeKey()) { setupChecks(context) }
     val run = rememberBackground()
 
-    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
+    // На маленьком экране текущий приём может оказаться ниже уже принятых:
+    // прокручиваем к первому, который ещё надо отметить.
+    val listState = rememberLazyListState()
+    val firstOpen = data.items.indexOfFirst {
+        it.dose.status == DoseStatus.PENDING || it.dose.status == DoseStatus.MISSED && it.dose.scheduledAt.toLocalDate() == LocalDate.now()
+    }
+    val headerCount = 1 + (if (checks.any { !it.ok }) 1 else 0)
+    LaunchedEffect(firstOpen, data.items.size) {
+        if (firstOpen > 0) listState.scrollToItem(headerCount + firstOpen)
+    }
+
+    LazyColumn(modifier, state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
         item { ScreenTitle(LocalDate.now().dayTitle()) }
 
         if (checks.any { !it.ok }) {
@@ -82,9 +95,6 @@ fun TodayScreen(modifier: Modifier, onAddMedicine: () -> Unit, onOpenSettings: (
                     onOpenSettings,
                 )
             }
-        }
-        items(data.lowStock, key = { "low" + it.id }) { m ->
-            WarningCard("Заканчивается: ${m.name}", stockSummary(m) ?: "", null, null)
         }
 
         if (!data.hasMedicines) {
@@ -111,6 +121,9 @@ fun TodayScreen(modifier: Modifier, onAddMedicine: () -> Unit, onOpenSettings: (
                 onSkip = { run { ctx -> Reminders.skip(ctx, item.dose) } },
                 onUndo = { run { ctx -> Reminders.undo(ctx, item.dose) } },
             )
+        }
+        items(data.lowStock, key = { "low" + it.id }) { m ->
+            WarningCard("Заканчивается: ${m.name}", stockSummary(m) ?: "", null, null)
         }
     }
 }

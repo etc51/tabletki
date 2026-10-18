@@ -34,11 +34,21 @@ PY
   if [ -z "$xy" ]; then return 1; fi
   adb shell input tap $xy
 }
+# Системные окна «приложение не отвечает» (бывают у лаунчера эмулятора) закрываем кнопкой «Wait».
+dismiss_anr() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  if adb shell cat /sdcard/ui.xml | grep -q "isn't responding"; then
+    echo "info: системное окно ANR, закрываю"
+    tap_text "Wait" || adb shell input keyevent 4
+    sleep 2
+  fi
+}
 screen_has() {
+  dismiss_anr
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
   adb shell cat /sdcard/ui.xml | grep -q "text=\"$1\""
 }
-start() { adb shell am start -n $PKG/ru.tabletki.ui.MainActivity --es screen "$1" >/dev/null; sleep 4; }
+start() { adb shell am start -n $PKG/ru.tabletki.ui.MainActivity --es screen "$1" >/dev/null; sleep 4; dismiss_anr; }
 send() { adb shell am broadcast -n $PKG/ru.tabletki.debug.DemoDataReceiver -a "ru.tabletki.debug.$1" >/dev/null; sleep 2; }
 
 adb logcat -c
@@ -62,7 +72,8 @@ if tap_text "Добавить лекарство"; then
   tap_text "Название" && adb shell input text "Aspirin" && sleep 1
   adb shell input keyevent 111  # убрать клавиатуру
   sleep 1
-  for i in 1 2 3 4; do tap_text "Сохранить" && break; adb shell input swipe 500 1500 500 500 300; sleep 1; done
+  read -r W H < <(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr 'x' ' ')
+  for i in 1 2 3 4 5 6; do tap_text "Сохранить" && break; adb shell input swipe $((W/2)) $((H*3/4)) $((W/2)) $((H/4)) 300; sleep 1; done
   sleep 3
   start medicines
   shot 03-spisok

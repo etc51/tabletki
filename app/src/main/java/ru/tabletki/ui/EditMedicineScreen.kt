@@ -181,7 +181,9 @@ fun EditMedicineScreen(medicineId: Long, onClose: () -> Unit) {
             )
             OutlinedTextField(
                 value = dose, onValueChange = { dose = it },
-                label = { Text("Как принимать, например «1 таблетка после еды»") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Как принимать") },
+                placeholder = { Text("1 таблетка после еды") },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             HorizontalDivider()

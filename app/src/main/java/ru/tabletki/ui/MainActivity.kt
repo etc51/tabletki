@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -114,7 +115,7 @@ private fun App(requested: String?, onRequestHandled: () -> Unit) {
                         selected = t == tab,
                         onClick = { tab = t },
                         icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(t.title, maxLines = 1) },
+                        label = { Text(t.title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall) },
                     )
                 }
             }
