@@ -36,6 +36,16 @@ jobs:
           TABLETKI_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew --no-daemon :core:test assembleDebug assembleRelease
 
+      - name: Сохранить APK в ветку checks/apk
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p apk-out && cp app/build/outputs/apk/release/*.apk app/build/outputs/apk/debug/*.apk apk-out/
+          cd apk-out
+          git init -q -b out
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "APK для ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" out:checks/apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: tabletki-apk
