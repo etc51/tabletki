@@ -30,7 +30,7 @@
 
 Нужны JDK 17 и Android SDK. Готовый APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
-GitHub Actions собирает APK при каждом изменении (вкладка Actions, артефакт `tabletki-apk`).
+GitHub Actions собирает APK при каждом изменении (вкладка Actions, артефакт `tabletki-apk`). Готовая подписанная версия лежит в папке [release](release/).
 
 ### Подпись для RuStore
 

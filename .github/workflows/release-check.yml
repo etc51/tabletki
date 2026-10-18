@@ -1,8 +1,9 @@
 name: Проверка релиза
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths: ['release/*.apk']
   workflow_dispatch:
 
 permissions:
@@ -18,11 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Скачать APK из последнего релиза
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Взять последний APK из папки release
         run: |
-          mkdir -p rel && gh release download --repo ${{ github.repository }} --pattern '*.apk' --dir rel
+          mkdir -p rel && cp "$(ls -t release/*.apk | head -1)" rel/
           ls -la rel
 
       - name: Включить KVM
