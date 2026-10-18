@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -165,13 +164,11 @@ private fun DoseCard(item: TodayItem, onTake: () -> Unit, onSkip: () -> Unit, on
             }
             Text(statusText, style = MaterialTheme.typography.titleMedium)
             when (d.status) {
-                DoseStatus.PENDING, DoseStatus.MISSED -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onTake, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                DoseStatus.PENDING, DoseStatus.MISSED -> {
+                    Button(onClick = onTake, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                         Text("Принял", style = MaterialTheme.typography.titleMedium)
                     }
-                    OutlinedButton(onClick = onSkip, modifier = Modifier.heightIn(min = 56.dp)) {
-                        Text("Пропустить")
-                    }
+                    TextButton(onClick = onSkip) { Text("Пропустить этот приём") }
                 }
                 DoseStatus.TAKEN, DoseStatus.SKIPPED -> TextButton(onClick = onUndo) { Text("Отменить отметку") }
             }

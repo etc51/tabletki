@@ -36,12 +36,15 @@ private val Dark = darkColorScheme(
     onTertiaryContainer = Color(0xFFFFE08A),
 )
 
+/** Обычная плотность экрана без увеличения шрифта, для элементов, которым тесно (нижнее меню). */
+val LocalBaseDensity = androidx.compose.runtime.staticCompositionLocalOf<Density?> { null }
+
 /** Крупный режим увеличивает весь текст в 1,3 раза поверх системной настройки. */
 @Composable
 fun TabletkiTheme(largeText: Boolean, content: @Composable () -> Unit) {
     val density = LocalDensity.current
     val scaled = if (largeText) Density(density.density, density.fontScale * 1.3f) else density
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light) {
-        CompositionLocalProvider(LocalDensity provides scaled, content = content)
+        CompositionLocalProvider(LocalDensity provides scaled, LocalBaseDensity provides density, content = content)
     }
 }
