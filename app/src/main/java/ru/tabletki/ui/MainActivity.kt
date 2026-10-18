@@ -1,6 +1,7 @@
 package ru.tabletki.ui
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +20,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +44,9 @@ private enum class Tab(val title: String, val icon: ImageVector) {
 
 class MainActivity : ComponentActivity() {
 
+    /** Экран, который просят открыть через intent: today, medicines, journal, settings или edit:ID. */
+    private val requestedScreen = mutableStateOf<String?>(null)
+
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -52,25 +57,46 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33 && !Notifier.canNotify(this)) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        requestedScreen.value = intent.getStringExtra(EXTRA_SCREEN)
         setContent {
             val version by store.version.collectAsState()
             TabletkiTheme(largeText = version.let { store.largeText }) {
-                App()
+                App(requestedScreen.value) { requestedScreen.value = null }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        requestedScreen.value = intent.getStringExtra(EXTRA_SCREEN)
     }
 
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch(Dispatchers.IO) { Reminders.refresh(applicationContext) }
     }
+
+    companion object {
+        const val EXTRA_SCREEN = "screen"
+    }
 }
 
 @Composable
-private fun App() {
+private fun App(requested: String?, onRequestHandled: () -> Unit) {
     var tab by rememberSaveable { mutableStateOf(Tab.TODAY) }
     // null — список, 0 — новое лекарство, иначе id редактируемого.
     var editing by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(requested) {
+        if (requested == null) return@LaunchedEffect
+        if (requested.startsWith("edit:")) {
+            editing = requested.removePrefix("edit:").toLongOrNull()
+        } else {
+            editing = null
+            Tab.entries.firstOrNull { it.name.equals(requested, ignoreCase = true) }?.let { tab = it }
+        }
+        onRequestHandled()
+    }
 
     val editId = editing
     if (editId != null) {
