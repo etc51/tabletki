@@ -24,6 +24,8 @@ class DemoDataReceiver : BroadcastReceiver() {
         when (intent.action) {
             "ru.tabletki.debug.SEED" -> seed(context)
             "ru.tabletki.debug.ALARM" -> AlarmActivity.open(context)
+            "ru.tabletki.debug.SOON" -> addSoon(context)
+            "ru.tabletki.debug.CLEAR" -> Store.get(context).replaceAll(emptyList(), emptyList())
         }
     }
 
@@ -56,6 +58,16 @@ class DemoDataReceiver : BroadcastReceiver() {
 
         Store.get(context).replaceAll(meds, doses)
         Notifier.update(context, alert = false)
+        Reminders.refresh(context)
+    }
+
+    /** Лекарство с приёмом в начале следующей минуты, чтобы проверить настоящий будильник. */
+    private fun addSoon(context: Context) {
+        val next = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).plusMinutes(1)
+        val store = Store.get(context)
+        store.saveMedicine(
+            Medicine(0, "Проверка", "1 таблетка", Schedule(listOf(next.toLocalTime()), next.toLocalDate())),
+        )
         Reminders.refresh(context)
     }
 
