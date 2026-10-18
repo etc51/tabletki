@@ -1,0 +1,2 @@
+    versionName=1.0
+    signatures=PackageSignatures{dc29b [4c7ac3dd]}
